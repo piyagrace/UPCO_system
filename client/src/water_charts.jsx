@@ -14,6 +14,9 @@ Chart.register(annotationPlugin);
 // Import the CSS file
 import './Chart.css'; // Adjust the path if necessary
 
+// Define tank names outside the component to maintain a stable reference
+const tankNames = ["U-mall Water Tank", "Main Water Tank"];
+
 function WaterQualityChart() {
   // State to store all fetched data
   const [allData, setAllData] = useState([]);
@@ -41,14 +44,14 @@ function WaterQualityChart() {
     { value: 'July-December', label: 'July - December' },
   ];
 
-  // Define tank names
-  const tankNames = ["U-mall Water Tank", "Main Water Tank"];
+  // Define the backend base URL using environment variables
+  const BACKEND_URL = 'http://localhost:3001'; // Update if different
 
   // Fetch available years when the component mounts
   useEffect(() => {
     const fetchAvailableYears = async () => {
       try {
-        const response = await axios.get('http://localhost:3001/available_years');
+        const response = await axios.get(`${BACKEND_URL}/available_years`);
         const sortedYears = response.data.sort((a, b) => b - a); // Descending order
         setAvailableYears(sortedYears);
         if (sortedYears.length > 0) {
@@ -61,7 +64,7 @@ function WaterQualityChart() {
     };
 
     fetchAvailableYears();
-  }, []);
+  }, [BACKEND_URL]);
 
   // Fetch data whenever selectedMonthRange or selectedYear changes
   useEffect(() => {
@@ -72,7 +75,7 @@ function WaterQualityChart() {
       setError(null);
 
       try {
-        const response = await axios.get('http://localhost:3001/waterquality_data', {
+        const response = await axios.get(`${BACKEND_URL}/waterquality_data`, {
           params: {
             monthRange: selectedMonthRange,
             year: selectedYear,
@@ -90,7 +93,7 @@ function WaterQualityChart() {
     };
 
     fetchData();
-  }, [selectedMonthRange, selectedYear]);
+  }, [selectedMonthRange, selectedYear, BACKEND_URL]);
 
   // Update chart data whenever allData changes
   useEffect(() => {
@@ -124,7 +127,7 @@ function WaterQualityChart() {
 
     const formattedData = formatChartData(allData);
     setChartData(formattedData);
-  }, [allData, tankNames]);
+  }, [allData]); // Removed 'tankNames' from dependencies since it's now stable
 
   // Chart options with dynamic title based on selected month range and year
   const options = {
@@ -140,7 +143,7 @@ function WaterQualityChart() {
       },
       title: {
         display: true,
-        text: `Water Quality Comparison (${selectedMonthRange} - ${selectedYear})`,
+        text: selectedMonthRange && selectedYear ? `Water Quality Comparison (${selectedMonthRange} - ${selectedYear})` : 'Water Quality Comparison',
         font: {
           size: 18
         }
@@ -200,7 +203,7 @@ function WaterQualityChart() {
 
   return (
     <div className="container mt-4">
-      <h2>Water Quality Comparison</h2>
+      <h2>Water Quality Chart</h2>
 
       {/* Filters: Month Range and Year */}
       <div className="mb-3 d-flex gap-3">
@@ -263,8 +266,8 @@ function WaterQualityChart() {
               <span className="ms-2">Main Water Tank</span>
             </div>
             <div className="legend-item d-flex align-items-center">
-            <span className="legend-line"></span>
-            <span>Threshold (5 mg/L)</span>
+              <span className="legend-line"></span>
+              <span>Threshold (5 mg/L)</span>
             </div>
           </div>
         </>

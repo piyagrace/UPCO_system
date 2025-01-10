@@ -1,6 +1,7 @@
 // WaterQualityTable.jsx
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import WaterQualityChart from "./water_charts";
 
 // **Define constants outside the component**
 const PARAMETERS = ["pH", "Color", "Fecal_Coliform", "TSS", "Chloride", "Nitrate", "Phosphate"];
@@ -109,7 +110,7 @@ function WaterQualityTable() {
 
     return (
         <div className="container mt-5">
-            <h2 className="mb-4">Water Quality Data</h2>
+            <h2 className="mb-4">Water Quality Table</h2>
 
             {/* Filters: Month Range and Year */}
             <div className="mb-4 d-flex gap-3">
@@ -179,6 +180,7 @@ function WaterQualityTable() {
                 </table>
             )}
         </div>
+        
     );
 }
 

@@ -1,10 +1,11 @@
+// AirQualityChart.jsx
 import React, { useEffect, useState, useRef } from 'react';
 import { Bar } from 'react-chartjs-2';
 import 'chart.js/auto';
 import axios from 'axios';
-import './Chart.css'; 
+import './Chart.css'; // Ensure this file exists and styles the legend appropriately
 
-// 1. Define AQI categories for each pollutant
+// Define AQI categories for each pollutant
 const aqiCategories = {
   CO: [
     { category: 'Good', min: 0, max: 1 },
@@ -32,7 +33,7 @@ const aqiCategories = {
   ]
 };
 
-// 2. Define colors for each category
+// Define colors for each category
 const categoryColors = {
   'Good': 'rgba(81,238,227,255)',           
   'Satisfactory': 'rgba(80,203,168,255)',   
@@ -44,16 +45,16 @@ const categoryColors = {
 };
 
 const categoryBackgroundColors = {
-  'Good': 'rgba(81,238,227,255)',          
-  'Satisfactory': 'rgba(255, 255, 0, 0.5)',
-  'Moderately Polluted': 'rgba(241,229,64,255)', 
-  'Poor': 'rgba(254,80,78,255)',           
-  'Very Poor': 'rgba(151,0,51,255)',   
-  'Severe': 'rgba(126,1,35,255)',       
-  'Unknown': 'rgba(204, 204, 204, 0.5)'     
+  'Good': 'rgba(81,238,227,0.6)',          
+  'Satisfactory': 'rgba(80,203,168,0.6)',
+  'Moderately Polluted': 'rgba(241,229,64,0.6)', 
+  'Poor': 'rgba(254,80,78,0.6)',           
+  'Very Poor': 'rgba(151,0,51,0.6)',   
+  'Severe': 'rgba(126,1,35,0.6)',       
+  'Unknown': 'rgba(204, 204, 204, 0.6)'     
 };
 
-// 3. Function to get AQI category based on pollutant and value
+// Function to get AQI category based on pollutant and value
 const getAqiCategory = (pollutant, value) => {
   const categories = aqiCategories[pollutant];
   if (!categories) return 'Unknown';
@@ -67,6 +68,22 @@ const getAqiCategory = (pollutant, value) => {
   return 'Unknown';
 };
 
+// Define month order for comparison
+const monthOrder = {
+  'January': 1,
+  'February': 2,
+  'March': 3,
+  'April': 4,
+  'May': 5,
+  'June': 6,
+  'July': 7,
+  'August': 8,
+  'September': 9,
+  'October': 10,
+  'November': 11,
+  'December': 12
+};
+
 function AirQualityChart() {
   // Reference to store the original data for toggling
   const originalChartData = useRef({
@@ -75,7 +92,7 @@ function AirQualityChart() {
     SO2: 0
   });
 
-  // 4. State for chart data
+  // State for chart data
   const [chartData, setChartData] = useState({
     labels: ['CO', 'NO₂', 'SO₂'], // Labels for the x-axis
     datasets: [
@@ -90,22 +107,113 @@ function AirQualityChart() {
   });
 
   // State for selected year and month
-  const [selectedYear, setSelectedYear] = useState(2024); // Default year
-  const [selectedMonth, setSelectedMonth] = useState('August'); // Default month
+  const [selectedYear, setSelectedYear] = useState('');
+  const [selectedMonth, setSelectedMonth] = useState('');
   const [error, setError] = useState(null); // State for error handling
+  const [loadingYears, setLoadingYears] = useState(false);
+  const [loadingData, setLoadingData] = useState(false);
 
-  // List of years and months for dropdowns
-  const years = [2021, 2022, 2023, 2024, 2025];
+  // State for available years fetched from API
+  const [availableYears, setAvailableYears] = useState([]);
+
+  // List of months for dropdowns
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
 
+  // Define the backend base URL using environment variables
+  const BACKEND_URL = 'http://localhost:3001'; // Update if different
+
+  useEffect(() => {
+    // Fetch available years and set the latest year and month
+    const fetchLatestData = async () => {
+      setLoadingYears(true);
+      setError(null); // Clear previous errors
+      try {
+        // Step 1: Fetch available years
+        const yearsResponse = await axios.get(`${BACKEND_URL}/available_year_air`);
+        const sortedYears = yearsResponse.data.sort((a, b) => b - a); // Descending order
+        setAvailableYears(sortedYears);
+
+        if (sortedYears.length === 0) {
+          setError('No available years found.');
+          setLoadingYears(false);
+          return;
+        }
+
+        // Step 2: Select the latest year
+        const latestYear = sortedYears[0];
+        setSelectedYear(latestYear);
+
+        // Step 3: Fetch all data for the latest year to determine the latest month
+        const dataResponse = await axios.get(`${BACKEND_URL}/airquality_data`, {
+          params: { year: latestYear }
+        });
+
+        const dataForYear = dataResponse.data;
+
+        if (dataForYear.length === 0) {
+          setError('No data available for the latest year.');
+          setSelectedMonth('');
+          setChartData({
+            labels: ['CO', 'NO₂', 'SO₂'],
+            datasets: [
+              { 
+                label: 'Air Quality',
+                data: [0, 0, 0],
+                borderColor: [],
+                backgroundColor: [],
+                borderWidth: 1
+              }
+            ]
+          });
+          setLoadingYears(false);
+          return;
+        }
+
+        // Step 4: Determine the latest month with available data
+        let latestMonth = dataForYear[0].month;
+        dataForYear.forEach(item => {
+          if (monthOrder[item.month] > monthOrder[latestMonth]) {
+            latestMonth = item.month;
+          }
+        });
+        setSelectedMonth(latestMonth);
+      } catch (err) {
+        console.error('Error fetching latest data:', err);
+        setError('Failed to load available years or data.');
+      } finally {
+        setLoadingYears(false);
+      }
+    };
+
+    fetchLatestData();
+  }, [BACKEND_URL]);
+
   useEffect(() => {
     // Fetch data whenever selectedYear or selectedMonth changes
     const fetchData = async () => {
+      if (!selectedYear || !selectedMonth) {
+        setChartData({
+          labels: ['CO', 'NO₂', 'SO₂'],
+          datasets: [
+            { 
+              label: 'Air Quality',
+              data: [0, 0, 0],
+              borderColor: [],
+              backgroundColor: [],
+              borderWidth: 1
+            }
+          ]
+        });
+        return;
+      }
+
+      setLoadingData(true);
+      setError(null); // Clear previous errors
       try {
-        const response = await axios.get('http://localhost:3001/airquality_data', {
+        const response = await axios.get(`${BACKEND_URL}/airquality_data`, {
           params: {
             year: selectedYear,
             month: selectedMonth
@@ -114,61 +222,149 @@ function AirQualityChart() {
 
         const data = response.data;
 
-        // Store original data for toggling
-        originalChartData.current = {
-          CO: data.CO,
-          NO2: data.NO2,
-          SO2: data.SO2
-        };
+        if (data.length > 0) {
+          // Aggregate data if multiple entries are returned for the same month
+          const aggregated = {
+            CO: (data.reduce((sum, item) => sum + (item.CO || 0), 0) / data.length).toFixed(2),
+            NO2: (data.reduce((sum, item) => sum + (item.NO2 || 0), 0) / data.length).toFixed(2),
+            SO2: (data.reduce((sum, item) => sum + (item.SO2 || 0), 0) / data.length).toFixed(2),
+          };
 
-        // Determine categories and colors for each pollutant
-        const pollutants = ['CO', 'NO2', 'SO2'];
-        const values = [data.CO, data.NO2, data.SO2];
-        const backgroundColors = [];
-        const borderColors = [];
+          // Determine categories and colors for each pollutant
+          const pollutants = ['CO', 'NO2', 'SO2'];
+          const values = [aggregated.CO, aggregated.NO2, aggregated.SO2];
+          const backgroundColors = [];
+          const borderColors = [];
 
-        values.forEach((value, index) => {
-          const pollutant = pollutants[index];
-          const category = getAqiCategory(pollutant, value);
-          const backgroundColor = categoryBackgroundColors[category] || categoryBackgroundColors['Unknown'];
-          const borderColor = categoryColors[category] || categoryColors['Unknown'];
-          backgroundColors.push(backgroundColor);
-          borderColors.push(borderColor);
-        });
+          values.forEach((value, index) => {
+            const pollutant = pollutants[index];
+            const category = getAqiCategory(pollutant, parseFloat(value));
+            const backgroundColor = categoryBackgroundColors[category] || categoryBackgroundColors['Unknown'];
+            const borderColor = categoryColors[category] || categoryColors['Unknown'];
+            backgroundColors.push(backgroundColor);
+            borderColors.push(borderColor);
+          });
 
-        // Update chart data with all pollutant values and corresponding colors
-        setChartData(prevState => ({
-          ...prevState,
-          datasets: [
-            {
-              ...prevState.datasets[0],
-              data: values,
-              backgroundColor: backgroundColors,
-              borderColor: borderColors
-            }
-          ]
-        }));
-        setError(null); // Reset error
+          // Update chart data
+          setChartData({
+            labels: ['CO', 'NO₂', 'SO₂'],
+            datasets: [
+              { 
+                label: 'Air Quality',
+                data: values,
+                backgroundColor: backgroundColors,
+                borderColor: borderColors,
+                borderWidth: 1
+              }
+            ]
+          });
+
+          originalChartData.current = aggregated; // Store original data if needed
+        } else {
+          // No data available
+          setChartData({
+            labels: ['CO', 'NO₂', 'SO₂'],
+            datasets: [
+              { 
+                label: 'Air Quality',
+                data: [0, 0, 0],
+                backgroundColor: [categoryBackgroundColors['Unknown'], categoryBackgroundColors['Unknown'], categoryBackgroundColors['Unknown']],
+                borderColor: [categoryColors['Unknown'], categoryColors['Unknown'], categoryColors['Unknown']],
+                borderWidth: 1
+              }
+            ]
+          });
+        }
       } catch (err) {
-        console.error('Error fetching data:', err);
-        setError(err.response?.data?.message || 'Error fetching data');
-        // Reset chart data if there's an error
-        setChartData(prevState => ({
-          ...prevState,
+        console.error('Error fetching air quality data:', err);
+        setError('Failed to load air quality data.');
+        setChartData({
+          labels: ['CO', 'NO₂', 'SO₂'],
           datasets: [
-            {
-              ...prevState.datasets[0],
-              data: [null, null, null], // Hide all bars
-              backgroundColor: [null, null, null],
-              borderColor: [null, null, null]
+            { 
+              label: 'Air Quality',
+              data: [0, 0, 0],
+              backgroundColor: [categoryBackgroundColors['Unknown'], categoryBackgroundColors['Unknown'], categoryBackgroundColors['Unknown']],
+              borderColor: [categoryColors['Unknown'], categoryColors['Unknown'], categoryColors['Unknown']],
+              borderWidth: 1
             }
           ]
-        }));
+        });
+      } finally {
+        setLoadingData(false);
       }
     };
 
     fetchData();
-  }, [selectedYear, selectedMonth]);
+  }, [selectedYear, selectedMonth, BACKEND_URL]);
+
+  // Handle year change
+  const handleYearChange = async (e) => {
+    const newYear = parseInt(e.target.value, 10);
+    setSelectedYear(newYear);
+    setSelectedMonth(''); // Reset month selection
+    setChartData({
+      labels: ['CO', 'NO₂', 'SO₂'],
+      datasets: [
+        { 
+          label: 'Air Quality',
+          data: [0, 0, 0],
+          borderColor: [],
+          backgroundColor: [],
+          borderWidth: 1
+        }
+      ]
+    }); // Clear existing data
+    setError(null); // Clear existing errors
+
+    // Fetch data for the new year to determine the latest month
+    setLoadingYears(true);
+    try {
+      const dataResponse = await axios.get(`${BACKEND_URL}/airquality_data`, {
+        params: { year: newYear }
+      });
+
+      const dataForYear = dataResponse.data;
+
+      if (dataForYear.length === 0) {
+        setError('No data available for the selected year.');
+        setSelectedMonth('');
+        setChartData({
+          labels: ['CO', 'NO₂', 'SO₂'],
+          datasets: [
+            { 
+              label: 'Air Quality',
+              data: [0, 0, 0],
+              borderColor: [],
+              backgroundColor: [],
+              borderWidth: 1
+            }
+          ]
+        });
+        setLoadingYears(false);
+        return;
+      }
+
+      // Determine the latest month with available data
+      let latestMonth = dataForYear[0].month;
+      dataForYear.forEach(item => {
+        if (monthOrder[item.month] > monthOrder[latestMonth]) {
+          latestMonth = item.month;
+        }
+      });
+      setSelectedMonth(latestMonth);
+    } catch (err) {
+      console.error('Error fetching data for the selected year:', err);
+      setError('Failed to load data for the selected year.');
+    } finally {
+      setLoadingYears(false);
+    }
+  };
+
+  // Handle month change
+  const handleMonthChange = (e) => {
+    setSelectedMonth(e.target.value);
+  };
 
   const options = {
     scales: {
@@ -182,7 +378,7 @@ function AirQualityChart() {
       },
       title: {
         display: true,
-        text: `Air Quality in CvSU - Indang Campus for ${selectedMonth} ${selectedYear}`
+        text: selectedMonth && selectedYear ? `Air Quality in CvSU - Indang Campus for ${selectedMonth} ${selectedYear}` : 'Air Quality Index'
       },
       tooltip: {
         callbacks: {
@@ -191,11 +387,11 @@ function AirQualityChart() {
             const value = context.parsed.y;
             const pollutantKey = pollutant.replace('₂', '2'); // 'NO₂' -> 'NO2', 'SO₂' -> 'SO2'
 
-            if (value === null || value === undefined) {
+            if (value === null || value === undefined || isNaN(value)) {
               return `${pollutant}: No data`;
             }
 
-            const category = getAqiCategory(pollutantKey, value);
+            const category = getAqiCategory(pollutantKey, parseFloat(value));
             return `${pollutant}: ${value} (${category})`;
           }
         }
@@ -203,76 +399,78 @@ function AirQualityChart() {
     }
   };
 
-  // 5. Define categories for the legend
-  const legendCategories = [
-    { label: 'Good', color: categoryColors['Good'] },
-    { label: 'Satisfactory', color: categoryColors['Satisfactory'] },
-    { label: 'Moderately Polluted', color: categoryColors['Moderately Polluted'] },
-    { label: 'Poor', color: categoryColors['Poor'] },
-    { label: 'Very Poor', color: categoryColors['Very Poor'] },
-    { label: 'Severe', color: categoryColors['Severe'] },
-  ];
-
   return (
-    <div>
-      <h2>Air Quality Index</h2>
+    <div className="chart-container">
+      <h2>Air Quality Chart</h2>
       
       {/* Dropdowns for Year and Month Selection */}
-      <div style={{ marginBottom: '20px' }}>
-        <label style={{ marginRight: '10px' }}>
-          Year:
-          <select 
-            value={selectedYear} 
-            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-            style={{ marginLeft: '5px' }}
+      <div className="dropdowns">
+        {/* Year Dropdown */}
+        <div className="dropdown">
+          <label htmlFor="year"><strong>Year:</strong></label>
+          <select
+            id="year"
+            value={selectedYear}
+            onChange={handleYearChange}
+            disabled={loadingYears || loadingData}
           >
-            {years.map(year => (
-              <option key={year} value={year}>{year}</option>
+            <option value="">Select Year</option>
+            {availableYears.map(year => (
+              <option key={year} value={year}>
+                {year}
+              </option>
             ))}
           </select>
-        </label>
+        </div>
 
-        <label>
-          Month:
-          <select 
-            value={selectedMonth} 
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            style={{ marginLeft: '5px' }}
+        {/* Month Dropdown */}
+        <div className="dropdown">
+          <label htmlFor="month"><strong>Month:</strong></label>
+          <select
+            id="month"
+            value={selectedMonth}
+            onChange={handleMonthChange}
+            disabled={loadingData || !selectedYear}
           >
-            {months.map(month => (
-              <option key={month} value={month}>{month}</option>
+            {/* Automatically select the latest month without a placeholder */}
+            {selectedMonth && (
+              <option key={selectedMonth} value={selectedMonth}>
+                {selectedMonth}
+              </option>
+            )}
+            {months
+              .filter(month => month !== selectedMonth)
+              .map(month => (
+                <option key={month} value={month}>
+                  {month}
+                </option>
             ))}
           </select>
-        </label>
-      </div>
-
-      {/* Display error message if any */}
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-
-      {/* 6. Bar Chart */}
-      <Bar data={chartData} options={options} />
-
-      {/* 7. Custom Legend */}
-      <div className="chart-legend">
-        <div className="legend-item">
-          <span className="legend-color" style={{ backgroundColor: 'rgba(81,238,227,255)' }}></span> Good
-        </div>
-        <div className="legend-item">
-          <span className="legend-color" style={{ backgroundColor: 'rgba(80,203,168,255)' }}></span> Satisfactory
-        </div>
-        <div className="legend-item">
-          <span className="legend-color" style={{ backgroundColor: 'rgba(241,229,64,255)' }}></span> Moderately Polluted
-        </div>
-        <div className="legend-item">
-          <span className="legend-color" style={{ backgroundColor: 'rgba(254,80,78,255)' }}></span> Poor
-        </div>
-        <div className="legend-item">
-          <span className="legend-color" style={{ backgroundColor: 'rgba(151,0,51,255)' }}></span> Very Poor
-        </div>
-        <div className="legend-item">
-          <span className="legend-color" style={{ backgroundColor: 'rgba(126,1,35,255)' }}></span> Severe
         </div>
       </div>
+
+      {/* Display Error Message */}
+      {error && <p className="error-message">{error}</p>}
+
+      {/* Loading Indicators */}
+      {(loadingYears || loadingData) && <p>Loading data...</p>}
+
+      {/* Bar Chart */}
+      {!loadingData && !error && (
+        <Bar data={chartData} options={options} />
+      )}
+
+      {/* Custom Legend */}
+      {!loadingData && !error && (
+        <div className="chart-legend">
+          {Object.keys(categoryColors).filter(cat => cat !== 'Unknown').map(category => (
+            <div key={category} className="legend-item">
+              <span className="legend-color" style={{ backgroundColor: categoryColors[category] }}></span>
+              {category}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

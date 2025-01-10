@@ -62,33 +62,40 @@ app.get('/filterUsers', (req, res) => {
         .catch(err => res.json(err));
 });
 
+app.get('/airquality_data', async (req, res) => { 
+    try {
+        const { month, year } = req.query;
+        let filter = {};
+
+        if (year) {
+            filter.year = parseInt(year, 10);
+        }
+
+        if (month) {
+            filter.month = month;
+        }
+
+        const data = await userModel5.find(filter, {
+           _id: 0, 
+           year: 1, 
+           month: 1, 
+           CO: 1,
+           NO2: 1, 
+           SO2: 1
+        });
+
+        res.json(data);
+    } catch (err) {
+        console.error("Error fetching air quality data:", err);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
 app.post("/add_airquality", (req, res) => {
     userModel5.create(req.body)
     .then(users => res.json(users))
     .catch(err => res.json(err))
 })
-
-app.get('/airquality_data', (req, res) => {
-    const { year, month } = req.query;
-
-    // Build the query object
-    let query = {};
-    if (year) query.year = parseInt(year);
-    if (month) query.month = month;
-
-    userModel5.find(query, { _id: 0, year: 1, month: 1, CO: 1, NO2: 1, SO2: 1 }) 
-        .then(data => {
-            if (data.length > 0) {
-                res.json(data[0]); // Return the first matching document
-            } else {
-                res.status(404).json({ message: 'No data found for the selected month and year.' });
-            }
-        })
-        .catch(err => {
-            console.error('Error fetching data:', err);
-            res.status(500).json({ error: 'Internal server error' });
-        });
-});
 
 app.post("/add_waterquality", (req, res) => {
     userModel4.create(req.body)
