@@ -18,8 +18,12 @@ function WaterQualityChart() {
   // State to store all fetched data
   const [allData, setAllData] = useState([]);
 
-  // State to manage selected month range
-  const [selectedMonthRange, setSelectedMonthRange] = useState('All');
+  // State to manage selected month range and year
+  const [selectedMonthRange, setSelectedMonthRange] = useState('January-June');
+  const [selectedYear, setSelectedYear] = useState(null);
+
+  // State to store available years
+  const [availableYears, setAvailableYears] = useState([]);
 
   // State to store chart data
   const [chartData, setChartData] = useState({
@@ -27,9 +31,12 @@ function WaterQualityChart() {
     datasets: []
   });
 
+  // State to manage loading and error states
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
   // Define month range options
   const monthOptions = [
-    { value: 'All', label: 'All Months' },
     { value: 'January-June', label: 'January - June' },
     { value: 'July-December', label: 'July - December' },
   ];
@@ -37,73 +44,92 @@ function WaterQualityChart() {
   // Define tank names
   const tankNames = ["U-mall Water Tank", "Main Water Tank"];
 
-  // Fetch data when the component mounts
+  // Fetch available years when the component mounts
   useEffect(() => {
-    axios.get('http://localhost:3001/waterquality_data')
-      .then(response => {
-        setAllData(response.data);
-      })
-      .catch(err => console.log('Error fetching data:', err));
+    const fetchAvailableYears = async () => {
+      try {
+        const response = await axios.get('http://localhost:3001/available_years');
+        const sortedYears = response.data.sort((a, b) => b - a); // Descending order
+        setAvailableYears(sortedYears);
+        if (sortedYears.length > 0) {
+          setSelectedYear(sortedYears[0]); // Default to the latest year
+        }
+      } catch (err) {
+        console.error('Error fetching available years:', err);
+        setError('Failed to load available years.');
+      }
+    };
+
+    fetchAvailableYears();
   }, []);
 
-  // Update chart data whenever allData or selectedMonthRange changes
+  // Fetch data whenever selectedMonthRange or selectedYear changes
   useEffect(() => {
-    // Filter data based on selected month range
-    const filteredData = filterDataByMonthRange(allData, selectedMonthRange);
-    const formattedData = formatChartData(filteredData);
-    setChartData(formattedData);
-  }, [allData, selectedMonthRange]);
+    const fetchData = async () => {
+      if (!selectedYear) return; // Do not fetch if year is not selected
 
-  /**
-   * Filters the data based on the selected month range.
-   * @param {Array} data - The complete dataset.
-   * @param {string} monthRange - The selected month range.
-   * @returns {Array} - The filtered dataset.
-   */
-  const filterDataByMonthRange = (data, monthRange) => {
-    if (monthRange === 'All') {
-      return data;
-    }
-    return data.filter(item => item.month === monthRange);
-  };
+      setIsLoading(true);
+      setError(null);
 
-  /**
-   * Formats the data to be compatible with Chart.js.
-   * Calculates the average values for each parameter per tank.
-   * @param {Array} data - The filtered dataset.
-   * @returns {Object} - The formatted chart data.
-   */
-  const formatChartData = (data) => {
-    const parameters = ["pH", "Color", "FecalColiform", "TSS", "Chloride", "Nitrate", "Phosphate"];
+      try {
+        const response = await axios.get('http://localhost:3001/waterquality_data', {
+          params: {
+            monthRange: selectedMonthRange,
+            year: selectedYear,
+          }
+        });
+        console.log("Fetched Data:", response.data); // For debugging
+        setAllData(response.data);
+      } catch (err) {
+        console.error('Error fetching water quality data:', err);
+        setError('Failed to load water quality data.');
+        setAllData([]); // Clear data on error
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-    // Initialize datasets
-    const datasets = tankNames.map((tank, index) => ({
-      label: tank,
-      data: [],
-      borderColor: index === 0 ? 'rgba(112,159,91,255)' : 'rgba(255,227,167,255)',
-      backgroundColor: index === 0 ? 'rgba(112,159,91,255)' : 'rgba(255,227,167,255)',
-    }));
+    fetchData();
+  }, [selectedMonthRange, selectedYear]);
 
-    // Group data by source_tank
-    const groupedData = tankNames.map(tank => data.filter(item => item.source_tank === tank));
+  // Update chart data whenever allData changes
+  useEffect(() => {
+    const formatChartData = (data) => {
+      const parameters = ["pH", "Color", "Fecal_Coliform", "TSS", "Chloride", "Nitrate", "Phosphate"];
 
-    // Calculate average for each parameter
-    parameters.forEach((param) => {
-      tankNames.forEach((tank, tankIndex) => {
-        const tankData = groupedData[tankIndex];
-        const average = tankData.length > 0
-          ? tankData.reduce((acc, cur) => acc + parseFloat(cur[param]), 0) / tankData.length
-          : 0;
-        datasets[tankIndex].data.push(parseFloat(average.toFixed(2)));
+      // Initialize datasets
+      const datasets = tankNames.map((tank, index) => ({
+        label: tank,
+        data: [],
+        borderColor: index === 0 ? 'rgba(112,159,91,255)' : 'rgba(255,227,167,255)',
+        backgroundColor: index === 0 ? 'rgba(112,159,91,255)' : 'rgba(255,227,167,255)', // Corrected RGBA format
+      }));
+
+      // Group data by source_tank
+      const groupedData = tankNames.map(tank => data.filter(item => item.source_tank === tank));
+
+      // Calculate average for each parameter
+      parameters.forEach((param) => {
+        tankNames.forEach((tank, tankIndex) => {
+          const tankData = groupedData[tankIndex].filter(item => item[param] != null);
+          const average = tankData.length > 0
+            ? tankData.reduce((acc, cur) => acc + parseFloat(cur[param]), 0) / tankData.length
+            : 0;
+          datasets[tankIndex].data.push(parseFloat(average.toFixed(2)));
+        });
       });
-    });
 
-    return { labels: parameters, datasets };
-  };
+      return { labels: parameters, datasets };
+    };
 
-  // Chart options with dynamic title based on selected month range
+    const formattedData = formatChartData(allData);
+    setChartData(formattedData);
+  }, [allData, tankNames]);
+
+  // Chart options with dynamic title based on selected month range and year
   const options = {
     responsive: true,
+    animation: false, // Disable animations
     interaction: {
       mode: 'index',
       intersect: false,
@@ -114,7 +140,7 @@ function WaterQualityChart() {
       },
       title: {
         display: true,
-        text: `Water Quality Comparison (${selectedMonthRange === 'All' ? 'All Months' : selectedMonthRange})`,
+        text: `Water Quality Comparison (${selectedMonthRange} - ${selectedYear})`,
         font: {
           size: 18
         }
@@ -176,41 +202,72 @@ function WaterQualityChart() {
     <div className="container mt-4">
       <h2>Water Quality Comparison</h2>
 
-      {/* Dropdown for selecting month range */}
-      <div className="mb-3">
-        <label htmlFor="monthRangeSelect" className="form-label"><strong>Filter by Month Range:</strong></label>
-        <select
-          id="monthRangeSelect"
-          className="form-select"
-          value={selectedMonthRange}
-          onChange={(e) => setSelectedMonthRange(e.target.value)}
-        >
-          {monthOptions.map((option, index) => (
-            <option key={index} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+      {/* Filters: Month Range and Year */}
+      <div className="mb-3 d-flex gap-3">
+        {/* Dropdown for selecting month range */}
+        <div className="flex-grow-1">
+          <label htmlFor="monthRangeSelect" className="form-label"><strong>Filter by Month Range:</strong></label>
+          <select
+            id="monthRangeSelect"
+            className="form-select"
+            value={selectedMonthRange}
+            onChange={(e) => setSelectedMonthRange(e.target.value)}
+          >
+            {monthOptions.map((option, index) => (
+              <option key={index} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Dropdown for selecting year */}
+        <div className="flex-grow-1">
+          <label htmlFor="yearSelect" className="form-label"><strong>Filter by Year:</strong></label>
+          <select
+            id="yearSelect"
+            className="form-select"
+            value={selectedYear || ''}
+            onChange={(e) => setSelectedYear(parseInt(e.target.value, 10))}
+          >
+            <option value="" disabled>Select Year</option>
+            {availableYears.map((year, index) => (
+              <option key={index} value={year}>
+                {year}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
-      {/* Conditional rendering based on filtered data */}
-      {chartData.labels.length > 0 ? (
-        <>
-        <Bar data={chartData} options={options} />
-      <div className="chart-legend">
-        <div className="legend-item">
-          <span className="legend-color" style={{ backgroundColor: 'rgba(112,159,91,255)' }}></span> U-mall Water Tank
-        </div>
-        <div className="legend-item">
-          <span className="legend-color" style={{ backgroundColor: 'rgba(255,227,167,255)' }}></span> Main Water Tank
-        </div>
-        <div className="legend-item">
-          <span className="legend-dash" style={{ backgroundColor: 'rgba(255,227,167,255)' }}></span> Class A-C Limit (5 mg/L)
-        </div>          
-      </div>
-        </>
+      {/* Loading and Error States */}
+      {isLoading ? (
+        <p>Loading data...</p>
+      ) : error ? (
+        <p className="text-danger">{error}</p>
+      ) : allData.length === 0 ? (
+        <p className="text-muted">No data available for the selected month range and year.</p>
       ) : (
-        <p className="text-muted">No data available for the selected month range.</p>
+        <>
+          {/* Bar Chart */}
+          <Bar data={chartData} options={options} />
+
+          {/* Custom Legend */}
+          <div className="chart-legend mt-3">
+            <div className="legend-item d-flex align-items-center mb-2">
+              <span className="legend-color" style={{ backgroundColor: 'rgba(112,159,91,255)' }}></span>
+              <span className="ms-2">U-mall Water Tank</span>
+            </div>
+            <div className="legend-item d-flex align-items-center mb-2">
+              <span className="legend-color" style={{ backgroundColor: 'rgba(255,227,167,255)' }}></span>
+              <span className="ms-2">Main Water Tank</span>
+            </div>
+            <div className="legend-item d-flex align-items-center">
+            <span className="legend-line"></span>
+            <span>Threshold (5 mg/L)</span>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

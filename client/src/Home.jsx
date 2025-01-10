@@ -4,6 +4,7 @@ import WasteQualityChart from "./waste_charts.jsx";
 import WaterQualityChart from "./water_charts.jsx";
 import AirQualityChart from "./air_charts.jsx";
 import WasteTable from "./waste_table.jsx";
+import WaterQualityTable from "./water_table.jsx";
 
 function Home() {
 
@@ -30,6 +31,7 @@ function Home() {
 
         {/*Charts*/}
         <WasteQualityChart />
+        <WaterQualityTable />
         <WaterQualityChart />
         <AirQualityChart />
       </div>

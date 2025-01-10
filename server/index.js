@@ -96,11 +96,63 @@ app.post("/add_waterquality", (req, res) => {
     .catch(err => res.json(err))
 })
 
-app.get('/waterquality_data', (req, res) => {
-    userModel4.find({}, { _id: 1, year: 1, month: 1, source_tank: 1, pH: 1, Color: 1, Fecal_Coliform: 1, TSS: 1, Chloride: 1, Nitrate: 1, Phosphate: 1}) 
-    .then(users => res.json(users))
-    .catch(err => res.json(err))
-})
+// Add this route to fetch distinct years for air table
+app.get('/available_year_air', async (req, res) => {
+    try {
+        const years = await userModel5.distinct('year');
+        res.json(years.sort((a, b) => b - a)); // Sort in descending order
+    } catch (err) {
+        console.error("Error fetching available years:", err);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
+// Add this route to fetch distinct years for water table
+app.get('/available_years', async (req, res) => {
+    try {
+        const years = await userModel4.distinct('year');
+        res.json(years.sort((a, b) => b - a)); // Sort in descending order
+    } catch (err) {
+        console.error("Error fetching available years:", err);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
+
+app.get('/waterquality_data', async (req, res) => {
+    try {
+        const { monthRange, year } = req.query;
+        let filter = {};
+
+        if (year) {
+            filter.year = parseInt(year, 10);
+        }
+
+        if (monthRange) {
+            // Directly filter by the exact month range string
+            filter.month = monthRange;
+        }
+
+        const users = await userModel4.find(filter, {
+            _id: 1,
+            year: 1,
+            month: 1,
+            source_tank: 1,
+            pH: 1,
+            Color: 1,
+            Fecal_Coliform: 1,
+            TSS: 1,
+            Chloride: 1,
+            Nitrate: 1,
+            Phosphate: 1
+        });
+
+        res.json(users);
+    } catch (err) {
+        console.error("Error fetching water quality data:", err);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
 
 app.post("/add_solidwaste", (req, res) => {
     userModel3.create(req.body)

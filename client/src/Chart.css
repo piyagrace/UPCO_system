@@ -19,10 +19,10 @@
     display: inline-block;
   }
 
-  .legend-dash {
+  .legend-line {
     display: inline-block;
-    width: 30px; /* Adjust the width as needed */
-    border-bottom: 2px dashed red; /* Creates a red dashed line */
-    margin-right: 10px; /* Adds space between the dash and the text */
+    width: 20px;
+    border-bottom: 2px solid rgba(255,19,19,255); /* Solid line */
+    margin-right: 8px;
   }
   

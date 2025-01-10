@@ -1,9 +1,6 @@
 import React, { useEffect, useState } from "react"; 
 import { Link } from "react-router-dom";
 import axios from "axios";
-import WasteQualityChart from "./waste_charts.jsx";
-import WaterQualityChart from "./water_charts.jsx";
-import AirQualityChart from "./air_charts.jsx";
 
 function WasteTable() {
   // State for filtered data
