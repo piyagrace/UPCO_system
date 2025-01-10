@@ -19,11 +19,11 @@ function Home() {
           Add Solid Waste
         </Link>
 
-        <Link to="/addwater" className="btn btn-success mb-3">
+        <Link to="/addwater" className="btn btn-success mb-3" style={{ marginLeft: '10px' }}>
           Add Water Data
         </Link>
 
-        <Link to="/addair" className="btn btn-success mb-3">
+        <Link to="/addair" className="btn btn-success mb-3" style={{ marginLeft: '10px' }}>
           Add Air Data
         </Link>
 
