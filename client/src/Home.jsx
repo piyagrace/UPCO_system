@@ -23,7 +23,7 @@ function Home() {
           Add Water Data
         </Link>
 
-        <Link to="/addair" className="btn btn-success mb-3" style={{ marginLeft: '10px' }}>
+        <Link to="/addair" className="btn btn-success mb-3" style={{ marginLeft: '10px' }}  >
           Add Air Data
         </Link>
 
