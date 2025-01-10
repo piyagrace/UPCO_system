@@ -15,7 +15,7 @@ function Home() {
         className="w-75 bg-white rounded p-3"
         style={{ marginTop: "30px", marginBottom: "30px" }}>
         {/* Add New Record Button */}
-        <Link to="/create" className="btn btn-success mb-3">
+        <Link to="/addwaste" className="btn btn-success mb-3">
           Add Solid Waste
         </Link>
 

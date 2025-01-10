@@ -1,7 +1,6 @@
 // WaterQualityTable.jsx
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import WaterQualityChart from "./water_charts";
 
 // **Define constants outside the component**
 const PARAMETERS = ["pH", "Color", "Fecal_Coliform", "TSS", "Chloride", "Nitrate", "Phosphate"];
@@ -66,7 +65,6 @@ function WaterQualityTable() {
                         year: selectedYear,
                     }
                 });
-                console.log("Fetched Data:", response.data); // For debugging
                 setAllData(response.data);
             } catch (error) {
                 console.error("Error fetching water quality data:", error);

@@ -81,7 +81,6 @@ function WaterQualityChart() {
             year: selectedYear,
           }
         });
-        console.log("Fetched Data:", response.data); // For debugging
         setAllData(response.data);
       } catch (err) {
         console.error('Error fetching water quality data:', err);

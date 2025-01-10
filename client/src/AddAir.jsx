@@ -52,7 +52,7 @@ function AddAir() {
     };
 
     return (
-        <div className='d-flex vh-100 bg-success justify-content-center align-tems-center'>
+        <div className='d-flex vh-100 bg-success justify-content-center align-items-center'>
             <div className='w-50 bg-white rounded p-3' style={{ marginTop: "30px", marginBottom: "30px" }}>
                 <form onSubmit={handleSubmit}>
                     <h2>Add Air Quality Data </h2> <p>(Do not include comma in values) </p>

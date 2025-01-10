@@ -52,7 +52,7 @@ function AddWater() {
     };
 
     return (
-        <div className='d-flex vh-100 bg-success justify-content-center align-tems-center'>
+        <div className='d-flex vh-100 bg-success justify-content-center align-items-center'>
             <div className='w-50 bg-white rounded p-3' style={{ marginTop: "30px", marginBottom: "30px" }}>
                 <form onSubmit={handleSubmit}>
                     <h2>Add Solid Waste Data</h2> <p>(Do not include comma in values) </p>
@@ -78,17 +78,17 @@ function AddWater() {
                         />
                     </div>
                     <div className='mb-2'>
-                        <label>Biodegradable (kg):</label>
-                        <input type="text" placeholder='Enter Quantity' className='form-control'
-                            value={biodegradable}
-                            onChange={(e) => setBiodegradable(e.target.value)}
-                        />
-                    </div>
-                    <div className='mb-2'>
                         <label>Recyclable (kg):</label>
                         <input type="text" placeholder='Enter Quantity' className='form-control'
                             value={recyclable}
                             onChange={(e) => setRecyclable(e.target.value)}
+                        />
+                    </div>
+                    <div className='mb-2'>
+                        <label>Biodegradable (kg):</label>
+                        <input type="text" placeholder='Enter Quantity' className='form-control'
+                            value={biodegradable}
+                            onChange={(e) => setBiodegradable(e.target.value)}
                         />
                     </div>
                     <button className='btn btn-success'>Submit</button>

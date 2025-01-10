@@ -183,7 +183,7 @@ app.delete('/delete_solidwaste/:id', (req, res) => {
 
 app.get('/get_solidwaste/:id', (req, res) => {
     const id = req.params.id;
-    userModel2serModel3.findById({_id:id})
+    userModel3.findById({_id:id})
     .then(users => res.json(users))
     .catch(err => res.json(err))
 })
@@ -193,8 +193,9 @@ app.put('/update_solidwaste/:id', (req, res) => {
     userModel3.findByIdAndUpdate({_id:id}, {
         year: req.body.year,
         month: req.body.month,
-        wastetype: req.body.wastetype,
-        quantity: req.body.quantity
+        residual: req.body.residual,
+        biodegradable: req.body.biodegradable,
+        recyclable: req.body.recyclable
     })
     .then(users => res.json(users))
     .catch(err => res.json(err))
