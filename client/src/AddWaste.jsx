@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
-function AddWater() {
+function AddWaste() {
     const [year, setYear] = useState('');
     const [month, setMonth] = useState('');
     const [residual, setResidual] = useState('');
@@ -98,4 +98,4 @@ function AddWater() {
     );
 }
 
-export default AddWater;
+export default AddWaste;

@@ -1,8 +1,7 @@
 import React from 'react'
 import {BrowserRouter, Routes, Route} from 'react-router-dom'
 import 'bootstrap/dist/css/bootstrap.min.css'
-import CreateUser from './AddWaste'
-import Users from './waste_table'
+import AddWaste from './AddWaste'
 import Home from './Home'
 import AddWater from './AddWater'
 import AddAir from './AddAir'
@@ -15,7 +14,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />}></Route>
-        <Route path='/create' element={<CreateUser />}></Route>
+        <Route path='/addwaste' element={<AddWaste key={window.location.pathname} />} />
         <Route path='/addwater' element={<AddWater />}></Route>
         <Route path='/addair' element={<AddAir />}></Route>
       </Routes>

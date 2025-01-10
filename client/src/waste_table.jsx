@@ -1,9 +1,7 @@
+// WasteTable.jsx
 import React, { useEffect, useState } from "react"; 
 import { Link } from "react-router-dom";
 import axios from "axios";
-import WasteQualityChart from "./waste_charts.jsx";
-import WaterQualityChart from "./water_charts.jsx";
-import AirQualityChart from "./air_charts.jsx";
 
 function WasteTable() {
   // State for filtered data
@@ -29,6 +27,22 @@ function WasteTable() {
     "December",
   ]);
   const [years] = useState([2019, 2020, 2021, 2022, 2023, 2024]); // Adjust the years as needed
+
+  // Define month order mapping
+  const monthOrder = {
+    "January": 1,
+    "February": 2,
+    "March": 3,
+    "April": 4,
+    "May": 5,
+    "June": 6,
+    "July": 7,
+    "August": 8,
+    "September": 9,
+    "October": 10,
+    "November": 11,
+    "December": 12
+  };
 
   // Fetch filtered users whenever selectedMonth or selectedYear changes
   useEffect(() => {
@@ -69,7 +83,23 @@ function WasteTable() {
       .catch((err) => console.error("Error deleting user:", err));
   };
 
-  // Transform data to aggregate waste types by year and month
+  // Define month order mapping
+  const monthOrderMap = {
+    "January": 1,
+    "February": 2,
+    "March": 3,
+    "April": 4,
+    "May": 5,
+    "June": 6,
+    "July": 7,
+    "August": 8,
+    "September": 9,
+    "October": 10,
+    "November": 11,
+    "December": 12
+  };
+
+  // Transform data to aggregate waste types by year and month, then sort
   const transformData = (data) => {
     const grouped = data.reduce((acc, item) => {
       const key = `${item.year}-${item.month}`;
@@ -88,96 +118,106 @@ function WasteTable() {
       return acc;
     }, {});
 
-    return Object.values(grouped);
+    let result = Object.values(grouped);
+
+    // Sort by year ascending and month order
+    result.sort((a, b) => {
+      if (a.year !== b.year) {
+        return a.year - b.year;
+      }
+      return monthOrderMap[a.month] - monthOrderMap[b.month];
+    });
+
+    return result;
   };
 
   const transformedData = transformData(filteredUsers);
 
   return (
-      <div>
-        <h2>Waste Table</h2>
-        {/* Dropdowns for selecting Month and Year */}
-        <div className="row mb-4">
-          {/* Select Month */}
-          <div className="col-md-6">
-            <div className="mb-3">
-              <label htmlFor="monthSelect" className="form-label">
-                Select Month
-              </label>
-              <select
-                id="monthSelect"
-                className="form-select"
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-              >
-                <option value="">All Months</option>
-                {months.map((month, index) => (
-                  <option key={index} value={month}>
-                    {month}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Select Year */}
-          <div className="col-md-6">
-            <div className="mb-3">
-              <label htmlFor="yearSelect" className="form-label">
-                Select Year
-              </label>
-              <select
-                id="yearSelect"
-                className="form-select"
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(e.target.value)}
-              >
-                <option value="">All Years</option>
-                {years.map((year, index) => (
-                  <option key={index} value={year}>
-                    {year}
-                  </option>
-                ))}
-              </select>
-            </div>
+    <div className="container mt-4">
+      <h2>Waste Table</h2>
+      {/* Dropdowns for selecting Month and Year */}
+      <div className="row mb-4">
+        {/* Select Month */}
+        <div className="col-md-6">
+          <div className="mb-3">
+            <label htmlFor="monthSelect" className="form-label">
+              Select Month
+            </label>
+            <select
+              id="monthSelect"
+              className="form-select"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+            >
+              <option value="">All Months</option>
+              {months.map((month, index) => (
+                <option key={index} value={month}>
+                  {month}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
-        {/* Table: Total Solid Waste Generated (Filtered Data) */}
-        <div className="max-auto">
-          <h5 className="text-center">Total Solid Waste Generated</h5>
-          <table
-            className="table table-bordered"
-            style={{ marginTop: "20px", marginLeft: "10px", marginRight: "10px" }}
-          >
-            <thead className="table-light">
-              <tr>
-                <th>Year</th>
-                <th>Month</th>
-                <th>Residuals</th>
-                <th>Biodegradables</th>
-                <th>Recyclables</th>
-                <th>Total</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {transformedData.length > 0 ? (
-                transformedData.map((item, index) => {
-                  const total =
-                    (item.residual || 0) +
-                    (item.biodegradable || 0) +
-                    (item.recyclable || 0);
+        {/* Select Year */}
+        <div className="col-md-6">
+          <div className="mb-3">
+            <label htmlFor="yearSelect" className="form-label">
+              Select Year
+            </label>
+            <select
+              id="yearSelect"
+              className="form-select"
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value)}
+            >
+              <option value="">All Years</option>
+              {years.map((year, index) => (
+                <option key={index} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
 
-                  return (
-                    <tr key={index}>
-                      <td>{item.year}</td>
-                      <td>{item.month}</td>
-                      <td>{item.residual}</td>
-                      <td>{item.biodegradable}</td>
-                      <td>{item.recyclable}</td>
-                      <td>{total}</td>
-                      <td>
+      {/* Table: Total Solid Waste Generated (Filtered Data) */}
+      <div className="max-auto">
+        <h5 className="text-center">Total Solid Waste Generated in (kg)</h5>
+        <table
+          className="table table-bordered"
+          style={{ marginTop: "20px", marginLeft: "10px", marginRight: "10px" }}
+        >
+          <thead className="table-light">
+            <tr>
+              <th>Year</th>
+              <th>Month</th>
+              <th>Residuals</th>
+              <th>Biodegradables</th>
+              <th>Recyclables</th>
+              <th>Total</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {transformedData.length > 0 ? (
+              transformedData.map((item, index) => {
+                const total =
+                  (item.residual || 0) +
+                  (item.biodegradable || 0) +
+                  (item.recyclable || 0);
+
+                return (
+                  <tr key={index}>
+                    <td>{item.year}</td>
+                    <td>{item.month}</td>
+                    <td>{item.residual}</td>
+                    <td>{item.biodegradable}</td>
+                    <td>{item.recyclable}</td>
+                    <td>{total}</td>
+                    <td>
                       <button
                         className="btn btn-danger btn-sm"
                         onClick={() => handleDelete(item._id)}
@@ -185,20 +225,20 @@ function WasteTable() {
                         Delete
                       </button>
                     </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan="6" className="text-center">
-                    No data available.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                  </tr>
+                );
+              })
+            ) : (
+              <tr>
+                <td colSpan="7" className="text-center">
+                  No data available.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
+    </div>
   );
 }
 

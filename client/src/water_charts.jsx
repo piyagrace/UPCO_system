@@ -29,7 +29,6 @@ function WaterQualityChart() {
 
   // Define month range options
   const monthOptions = [
-    { value: 'All', label: 'All Months' },
     { value: 'January-June', label: 'January - June' },
     { value: 'July-December', label: 'July - December' },
   ];
@@ -74,7 +73,7 @@ function WaterQualityChart() {
    * @returns {Object} - The formatted chart data.
    */
   const formatChartData = (data) => {
-    const parameters = ["pH", "Color", "FecalColiform", "TSS", "Chloride", "Nitrate", "Phosphate"];
+    const parameters = ["pH", "Color", "Fecal_Coliform", "TSS", "Chloride", "Nitrate", "Phosphate"];
 
     // Initialize datasets
     const datasets = tankNames.map((tank, index) => ({

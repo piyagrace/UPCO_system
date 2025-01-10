@@ -6,7 +6,7 @@ const UserSchema = new mongoose.Schema({
     source_tank: String,
     pH: Number,
     Color: Number,
-    FecalColiform: Number,
+    Fecal_Coliform: Number,
     TSS: Number,
     Chloride: Number,
     Nitrate: Number,

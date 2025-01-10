@@ -96,6 +96,39 @@ app.post("/add_waterquality", (req, res) => {
     .catch(err => res.json(err))
 })
 
+// Corrected API endpoint
+app.get('/filterwaterquality_data', async (req, res) => {
+    try {
+        const { monthRange } = req.query;
+        let filter = {};
+
+        if (monthRange) {
+            // Directly filter by the exact month range string
+            filter.month = monthRange;
+        }
+
+        const users = await userModel4.find(filter, {
+            _id: 1,
+            year: 1,
+            month: 1,
+            source_tank: 1,
+            pH: 1,
+            Color: 1,
+            Fecal_Coliform: 1,
+            TSS: 1,
+            Chloride: 1,
+            Nitrate: 1,
+            Phosphate: 1
+        });
+
+        res.json(users);
+    } catch (err) {
+        console.error("Error fetching water quality data:", err);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
+
 app.get('/waterquality_data', (req, res) => {
     userModel4.find({}, { _id: 1, year: 1, month: 1, source_tank: 1, pH: 1, Color: 1, Fecal_Coliform: 1, TSS: 1, Chloride: 1, Nitrate: 1, Phosphate: 1}) 
     .then(users => res.json(users))
