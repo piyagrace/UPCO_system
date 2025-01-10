@@ -1,0 +1,28 @@
+/* WaterQualityChart.css */
+
+.chart-legend {
+    display: flex;
+    justify-content: center;
+    margin-top: 10px;
+  }
+  
+  .legend-item {
+    display: flex;
+    align-items: center;
+    margin-right: 20px;
+  }
+  
+  .legend-color {
+    width: 20px;
+    height: 10px;
+    margin-right: 5px;
+    display: inline-block;
+  }
+
+  .legend-dash {
+    display: inline-block;
+    width: 30px; /* Adjust the width as needed */
+    border-bottom: 2px dashed red; /* Creates a red dashed line */
+    margin-right: 10px; /* Adds space between the dash and the text */
+  }
+  
