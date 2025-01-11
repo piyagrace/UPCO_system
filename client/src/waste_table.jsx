@@ -10,54 +10,83 @@ function WasteTable() {
   const [selectedYear, setSelectedYear] = useState("");
   const [error, setError] = useState("");
 
-  // Define months as a constant array for sorting purposes
+  // New state for fetching available years
+  const [availableYears, setAvailableYears] = useState([]);
+  const [yearError, setYearError] = useState("");
+  const [loadingYears, setLoadingYears] = useState(false);
+
+  // Define months as a constant array in ascending order
   const months = [
     "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December",
+    "July", "August", "September", "October", "November", "December"
   ];
 
-  // Define years as a constant array
-  const years = [2019, 2020, 2021, 2022, 2023, 2024];
+  // 1. Fetch available years for the year dropdown in ascending order
+  useEffect(() => {
+    const fetchAvailableYears = async () => {
+      setLoadingYears(true);
+      setYearError("");
+      try {
+        const response = await axios.get("http://localhost:3001/available_year_waste");
+        // Sort the array in ascending order (oldest -> newest).
+        const sortedYears = response.data.sort((a, b) => a - b);
+        setAvailableYears(sortedYears);
+      } catch (err) {
+        console.error("Error fetching available years:", err);
+        setYearError("Failed to fetch available years.");
+      } finally {
+        setLoadingYears(false);
+      }
+    };
 
-  // Fetch filtered users based on selected month and year
+    fetchAvailableYears();
+  }, []);
+
+  // 2. Fetch filtered users based on selectedMonth & selectedYear
+  //    If both are empty, fetch ALL data from the server.
   useEffect(() => {
     const fetchFilteredUsers = async () => {
       try {
         const queryParams = new URLSearchParams();
-        if (selectedMonth) {
-          queryParams.append("month", selectedMonth);
-        }
-        if (selectedYear) {
-          queryParams.append("year", Number(selectedYear));
-        }
+        if (selectedMonth) queryParams.append("month", selectedMonth);
+        if (selectedYear) queryParams.append("year", Number(selectedYear));
 
         const response = await axios.get(`http://localhost:3001/filterUsers?${queryParams.toString()}`);
         let data = response.data;
 
-        // Sort the data based on the month order
+        /**
+         * Sort the data by:
+         * 1) Year ascending (oldest to newest)
+         * 2) Month ascending (January -> December within each year)
+         */
         data.sort((a, b) => {
+          // First compare by year ascending
+          if (a.year !== b.year) {
+            return a.year - b.year;
+          }
+          // If same year, compare by month index ascending
           return months.indexOf(a.month) - months.indexOf(b.month);
         });
 
         setFilteredUsers(data);
-        setError(""); // Clear any previous errors
+        setError(""); // clear previous errors
       } catch (err) {
         console.error("Error fetching filtered users:", err);
-        setFilteredUsers([]); // Clear data on error
+        setFilteredUsers([]);
         setError("Failed to fetch waste data. Please try again later.");
       }
     };
 
     fetchFilteredUsers();
-  }, [selectedMonth, selectedYear, months]);
+  }, [selectedMonth, selectedYear]);
 
   // Handle Delete Action per Entry
   const handleDelete = async (id) => {
     if (window.confirm(`Are you sure you want to delete this waste entry?`)) {
       try {
         await axios.delete(`http://localhost:3001/delete_solidwaste/${id}`);
-        // Remove the deleted record from the state without reloading the page
-        setFilteredUsers(prevData => prevData.filter(item => item._id !== id));
+        // Remove the deleted record from state
+        setFilteredUsers((prevData) => prevData.filter((item) => item._id !== id));
         alert("Waste entry deleted successfully.");
       } catch (error) {
         console.error("Error deleting waste data:", error);
@@ -77,7 +106,14 @@ function WasteTable() {
   return (
     <div className="container mt-5">
       <h2>Waste Table</h2>
-      {/* Dropdowns for selecting Month and Year */}
+
+      {/* --- Display an error if years fail to load --- */}
+      {yearError && <div className="alert alert-danger">{yearError}</div>}
+
+      {/* 3. Show loading status for years */}
+      {loadingYears && <p>Loading available years...</p>}
+
+      {/* Dropdowns for Month and Year */}
       <div className="row mb-4">
         {/* Select Month */}
         <div className="col-md-6">
@@ -112,10 +148,11 @@ function WasteTable() {
               className="form-select"
               value={selectedYear}
               onChange={(e) => setSelectedYear(e.target.value)}
+              disabled={loadingYears}
             >
               <option value="">All Years</option>
-              {years.map((year, index) => (
-                <option key={index} value={year}>
+              {availableYears.map((year) => (
+                <option key={year} value={year}>
                   {year}
                 </option>
               ))}
@@ -124,7 +161,7 @@ function WasteTable() {
         </div>
       </div>
 
-      {/* Display Error Message */}
+      {/* Display Error Message for waste data fetch */}
       {error && <div className="alert alert-danger">{error}</div>}
 
       {/* Table: Individual Solid Waste Entries */}
@@ -151,16 +188,19 @@ function WasteTable() {
                 <tr key={item._id}>
                   <td>{item.year}</td>
                   <td>{item.month}</td>
-                  <td>{item.residual !== undefined && item.residual !== null ? item.residual : "N/A"}</td>
-                  <td>{item.biodegradable !== undefined && item.biodegradable !== null ? item.biodegradable : "N/A"}</td>
-                  <td>{item.recyclable !== undefined && item.recyclable !== null ? item.recyclable : "N/A"}</td>
+                  <td>{item.residual ?? "N/A"}</td>
+                  <td>{item.biodegradable ?? "N/A"}</td>
+                  <td>{item.recyclable ?? "N/A"}</td>
                   <td>{calculateTotal(item)}</td>
                   <td>
-                    <Link to={`/solidwaste/${item._id}`} className='btn btn-success btn-sm'>Update</Link>
+                    <Link to={`/update/solidwaste/${item._id}`} className="btn btn-success btn-sm">
+                      Update
+                    </Link>
                     <button
                       className="btn btn-danger btn-sm"
                       onClick={() => handleDelete(item._id)}
-                      style={{ marginLeft: '10px' }}>
+                      style={{ marginLeft: "10px" }}
+                    >
                       Delete
                     </button>
                   </td>

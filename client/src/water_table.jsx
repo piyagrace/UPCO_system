@@ -128,7 +128,7 @@ function WaterQualityTable() {
 
     // Handle Update Action per Tank
     const handleUpdate = (tankId) => {
-        navigate(`/water/${tankId}`);
+        navigate(`/update/water/${tankId}`);
     };
 
     // Organize data by tank

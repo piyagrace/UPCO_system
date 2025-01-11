@@ -1,21 +1,22 @@
 // AirQualityTable.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from "react-router-dom"; // For programmatic navigation
 
 // Helper to map month names to numbers for ordering
 const monthOrder = {
-  'January': 1,
-  'February': 2,
-  'March': 3,
-  'April': 4,
-  'May': 5,
-  'June': 6,
-  'July': 7,
-  'August': 8,
-  'September': 9,
-  'October': 10,
-  'November': 11,
-  'December': 12
+  January: 1,
+  February: 2,
+  March: 3,
+  April: 4,
+  May: 5,
+  June: 6,
+  July: 7,
+  August: 8,
+  September: 9,
+  October: 10,
+  November: 11,
+  December: 12
 };
 
 const AirQualityTable = () => {
@@ -26,10 +27,11 @@ const AirQualityTable = () => {
   ]);
   const [selectedYear, setSelectedYear] = useState('');
   const [selectedMonth, setSelectedMonth] = useState('');
-  const [data, setData] = useState(null);
+  const [data, setData] = useState(null); // This will hold { id, CO, NO2, SO2 }
   const [loadingYears, setLoadingYears] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   // Define the backend base URL
   const BACKEND_URL = 'http://localhost:3001'; // Update if different
@@ -107,9 +109,18 @@ const AirQualityTable = () => {
           }
         });
 
+        /**
+         * If you return multiple documents from your backend for the same
+         * year/month, you can:
+         * 1) Aggregate them as you already do for CO, NO2, SO2.
+         * 2) Pick an `_id` from the first (or a specific) record to pass to update/delete.
+         */
         if (response.data.length > 0) {
+          // Let's pick the first record's _id
+          const firstRecord = response.data[0];
           // Aggregate data if multiple entries are returned for the same month
           const aggregated = {
+            id: firstRecord._id, // Grab the _id from the first record
             CO: (response.data.reduce((sum, item) => sum + (item.CO || 0), 0) / response.data.length).toFixed(2),
             NO2: (response.data.reduce((sum, item) => sum + (item.NO2 || 0), 0) / response.data.length).toFixed(2),
             SO2: (response.data.reduce((sum, item) => sum + (item.SO2 || 0), 0) / response.data.length).toFixed(2),
@@ -173,6 +184,38 @@ const AirQualityTable = () => {
   // Handle month change
   const handleMonthChange = (e) => {
     setSelectedMonth(e.target.value);
+  };
+
+  // Handle Delete Action
+  const handleDelete = async (id) => {
+    if (!id) {
+      alert('No ID found. Cannot delete data without an ID.');
+      return;
+    }
+
+    if (window.confirm(`Are you sure you want to delete this waste entry?`)) {
+      try {
+        await axios.delete(`${BACKEND_URL}/delete_air/${id}`);
+        alert("Waste entry deleted successfully.");
+
+        // Since you’re deleting a record, you might want to refetch data or clear local data
+        setData(null);
+
+      } catch (error) {
+        console.error("Error deleting waste data:", error);
+        alert("Failed to delete the entry. Please try again.");
+      }
+    }
+  };
+
+  // Handle Update Action
+  const handleUpdate = (id) => {
+    if (!id) {
+      alert('No ID found. Cannot update data without an ID.');
+      return;
+    }
+    // Navigate to the update page with the ID
+    navigate(`/update/air/${id}`);
   };
 
   return (
@@ -252,6 +295,27 @@ const AirQualityTable = () => {
                   <tr>
                     <td style={styles.td}>SO₂</td>
                     <td style={styles.td}>{data.SO2}</td>
+                  </tr>
+
+                  {/* Actions Row */}
+                  <tr>
+                    <td style={styles.td}><strong>Actions</strong></td>
+                    <td style={styles.td}>
+                      <>
+                        <button
+                          className="btn btn-success btn-sm me-2"
+                          onClick={() => handleUpdate(data.id)}
+                        >
+                          Update
+                        </button>
+                        <button
+                          className="btn btn-danger btn-sm"
+                          onClick={() => handleDelete(data.id)}
+                        >
+                          Delete
+                        </button>
+                      </>
+                    </td>
                   </tr>
                 </tbody>
               </table>

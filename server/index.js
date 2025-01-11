@@ -46,21 +46,33 @@ app.get('/airquality_data/:year/:month', (req, res) => {
     });
 });
 
-app.get('/filterUsers', (req, res) => {
-    const { month, year } = req.query;
 
-    let filter = {};
-    if (month) {
-        filter.month = month;  // assuming the user model has a 'month' field
-    }
-    if (year) {
-        filter.year = year; // assuming the user model has a 'year' field
-    }
+app.delete('/delete_air/:id', (req, res) => {
+    const id = req.params.id;
+    userModel5.findByIdAndDelete({_id:id})
+    .then(res => res.json(res))
+    .catch(err => res.json(err))
+})
 
-    userModel3.find(filter)
-        .then(users => res.json(users))
-        .catch(err => res.json(err));
-});
+app.get('/get_air/:id', (req, res) => {
+    const id = req.params.id;
+    userModel5.findById({_id:id})
+    .then(users => res.json(users))
+    .catch(err => res.json(err))
+})
+
+app.put('/update_air/:id', (req, res) => {
+    const id = req.params.id;
+    userModel5.findByIdAndUpdate({_id:id}, {
+        year: req.body.year,
+        month: req.body.month,
+        CO: req.body.CO,
+        NO2: req.body.NO2,
+        SO2: req.body.SO2,
+    })
+    .then(users => res.json(users))
+    .catch(err => res.json(err))
+})
 
 app.get('/airquality_data', async (req, res) => { 
     try {
@@ -76,7 +88,7 @@ app.get('/airquality_data', async (req, res) => {
         }
 
         const data = await userModel5.find(filter, {
-           _id: 0, 
+           _id: 1, 
            year: 1, 
            month: 1, 
            CO: 1,
@@ -102,6 +114,17 @@ app.post("/add_waterquality", (req, res) => {
     .then(users => res.json(users))
     .catch(err => res.json(err))
 })
+
+// Add this route to fetch distinct years for waste table
+app.get('/available_year_waste', async (req, res) => {
+    try {
+        const years = await userModel3.distinct('year');
+        res.json(years.sort((a, b) => b - a)); // Sort in descending order
+    } catch (err) {
+        console.error("Error fetching available years:", err);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
 
 // Add this route to fetch distinct years for air table
 app.get('/available_year_air', async (req, res) => {
@@ -198,6 +221,22 @@ app.post("/add_solidwaste", (req, res) => {
     .then(users => res.json(users))
     .catch(err => res.json(err))
 })
+
+app.get('/filterUsers', (req, res) => {
+    const { month, year } = req.query;
+
+    let filter = {};
+    if (month) {
+        filter.month = month;  // assuming the user model has a 'month' field
+    }
+    if (year) {
+        filter.year = year; // assuming the user model has a 'year' field
+    }
+
+    userModel3.find(filter)
+        .then(users => res.json(users))
+        .catch(err => res.json(err));
+});
 
 app.get('/solidwaste_data', (req, res) => {
     userModel3.find({}, { _id: 1, year: 1, month: 1, residual: 1, biodegradable: 1, recyclable: 1}) 
