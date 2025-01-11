@@ -147,7 +147,7 @@ app.get('/waterquality_data', async (req, res) => {
             source_tank: 1,
             pH: 1,
             Color: 1,
-            Fecal_Coliform: 1,
+            FecalColiform: 1,
             TSS: 1,
             Chloride: 1,
             Nitrate: 1,
@@ -160,6 +160,38 @@ app.get('/waterquality_data', async (req, res) => {
         res.status(500).json({ error: "Server Error" });
     }
 });
+
+app.delete('/delete_water/:id', (req, res) => {
+    const id = req.params.id;
+    userModel4.findByIdAndDelete({_id:id})
+    .then(res => res.json(res))
+    .catch(err => res.json(err))
+})
+
+app.get('/get_water/:id', (req, res) => {
+    const id = req.params.id;
+    userModel4.findById({_id:id})
+    .then(users => res.json(users))
+    .catch(err => res.json(err))
+})
+
+app.put('/update_water/:id', (req, res) => {
+    const id = req.params.id;
+    userModel4.findByIdAndUpdate({_id:id}, {
+        year: req.body.year,
+        month: req.body.month,
+        source_tank: req.body.source_tank,
+        pH: req.body.pH,
+        Color: req.body.Color,
+        FecalColiform: req.body.FecalColiform,
+        TSS: req.body.TSS,
+        Chloride: req.body.Chloride,
+        Nitrate: req.body.Nitrate,
+        Phosphate: req.body.Phosphate
+    })
+    .then(users => res.json(users))
+    .catch(err => res.json(err))
+})
 
 app.post("/add_solidwaste", (req, res) => {
     userModel3.create(req.body)

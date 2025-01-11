@@ -1,9 +1,10 @@
 // WaterQualityTable.jsx
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom"; // For programmatic navigation
 
 // **Define constants outside the component**
-const PARAMETERS = ["pH", "Color", "Fecal_Coliform", "TSS", "Chloride", "Nitrate", "Phosphate"];
+const PARAMETERS = ["pH", "Color", "FecalColiform", "TSS", "Chloride", "Nitrate", "Phosphate"];
 const SOURCE_TANKS = ["U-mall Water Tank", "Main Water Tank"];
 
 function WaterQualityTable() {
@@ -14,6 +15,9 @@ function WaterQualityTable() {
     const [aggregatedData, setAggregatedData] = useState({});
     const [availableYears, setAvailableYears] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
+
+    const navigate = useNavigate();
 
     // Define month options with value and label
     const monthOptions = [
@@ -58,6 +62,7 @@ function WaterQualityTable() {
     useEffect(() => {
         const fetchData = async () => {
             setIsLoading(true);
+            setError('');
             try {
                 const response = await axios.get('http://localhost:3001/waterquality_data', {
                     params: {
@@ -69,6 +74,7 @@ function WaterQualityTable() {
             } catch (error) {
                 console.error("Error fetching water quality data:", error);
                 setAllData([]); // Clear data on error
+                setError("Failed to fetch water quality data.");
             } finally {
                 setIsLoading(false);
             }
@@ -88,12 +94,10 @@ function WaterQualityTable() {
             PARAMETERS.forEach(param => {
                 aggregation[param] = {};
                 SOURCE_TANKS.forEach(tank => {
-                    // Filter data for the specific tank and parameter
-                    const tankData = allData.filter(item => item.source_tank === tank && item[param] != null);
-                    if (tankData.length > 0) {
-                        const total = tankData.reduce((sum, current) => sum + (parseFloat(current[param]) || 0), 0);
-                        const average = total / tankData.length;
-                        aggregation[param][tank] = formatNumber(average);
+                    // Find data for the specific tank and parameter
+                    const tankData = allData.find(item => item.source_tank === tank);
+                    if (tankData && tankData[param] != null) { // Access the correct field
+                        aggregation[param][tank] = formatNumber(tankData[param]);
                     } else {
                         aggregation[param][tank] = "N/A";
                     }
@@ -105,6 +109,31 @@ function WaterQualityTable() {
 
         aggregate();
     }, [allData]);
+
+    // Handle Delete Action per Tank
+    const handleDelete = async (tankId, tankName) => {
+        if (window.confirm(`Are you sure you want to delete the data for "${tankName}"?`)) {
+            try {
+                const response = await axios.delete(`http://localhost:3001/delete_water/${tankId}`);
+                console.log(response.data);
+                // Remove the deleted record from the state
+                setAllData(prevData => prevData.filter(item => item._id !== tankId));
+                alert("Waste entry deleted successfully.");
+            } catch (error) {
+                console.error("Error deleting water quality data:", error);
+                alert("Failed to delete the entry. Please try again.");
+            }
+        }
+    };
+
+    // Handle Update Action per Tank
+    const handleUpdate = (tankId) => {
+        navigate(`/water/${tankId}`);
+    };
+
+    // Organize data by tank
+    const uMallData = allData.find(record => record.source_tank === "U-mall Water Tank");
+    const mainTankData = allData.find(record => record.source_tank === "Main Water Tank");
 
     return (
         <div className="container mt-5">
@@ -152,6 +181,8 @@ function WaterQualityTable() {
             {/* Loading State */}
             {isLoading ? (
                 <p>Loading data...</p>
+            ) : error ? (
+                <p className="text-danger">{error}</p>
             ) : allData.length === 0 ? (
                 <p>No data available for the selected month range and year.</p>
             ) : (
@@ -168,17 +199,45 @@ function WaterQualityTable() {
                     <tbody>
                         {PARAMETERS.map((param, index) => (
                             <tr key={index}>
-                                <td>{param}</td>
+                                <td>{param === "FecalColiform" ? "Fecal Coliform" : param}</td> {/* Display name properly */}
                                 {SOURCE_TANKS.map((tank, idx) => (
                                     <td key={idx}>{aggregatedData[param] ? aggregatedData[param][tank] : "N/A"}</td>
                                 ))}
                             </tr>
                         ))}
+                        {/* Actions Row */}
+                        <tr>
+                            <td><strong>Actions</strong></td>
+                            {SOURCE_TANKS.map((tank, idx) => {
+                                const tankData = tank === "U-mall Water Tank" ? uMallData : mainTankData;
+                                return (
+                                    <td key={idx}>
+                                        {tankData ? (
+                                            <>
+                                                <button
+                                                    className="btn btn-success btn-sm me-2"
+                                                    onClick={() => handleUpdate(tankData._id)}
+                                                >
+                                                    Update
+                                                </button>
+                                                <button
+                                                    className="btn btn-danger btn-sm"
+                                                    onClick={() => handleDelete(tankData._id, tank)}
+                                                >
+                                                    Delete
+                                                </button>
+                                            </>
+                                        ) : (
+                                            "No Data"
+                                        )}
+                                    </td>
+                                );
+                            })}
+                        </tr>
                     </tbody>
                 </table>
             )}
         </div>
-        
     );
 }
 
